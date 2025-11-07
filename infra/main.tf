@@ -57,13 +57,14 @@ module "ecs" {
 }
 
 # Route53 Module
-# Note: Using Zone 1 (Z06988621L4AI5LXY4AF3) - this is the ACTIVE zone that the domain registrar points to
-# Zone 2 (Z03471512MMNKQA60WMUH) exists but domain doesn't use those nameservers
+# Zone 1 (Z06988621L4AI5LXY4AF3) - This is the ONLY and CORRECT zone
+# Domain registrar points to this zone's nameservers
+# DO NOT CHANGE THIS - nameservers are permanent and correct
 module "route53" {
   source                                = "./modules/route53"
   domain_name                           = var.domain_name
   subdomain                             = var.subdomain
-  hosted_zone_id                        = "Z06988621L4AI5LXY4AF3" # ACTIVE zone - domain uses these nameservers
+  hosted_zone_id                        = "Z06988621L4AI5LXY4AF3" # Zone 1 - CORRECT and PERMANENT
   alb_dns_name                          = module.alb.alb_dns_name
   alb_zone_id                           = module.alb.alb_zone_id
   certificate_arn                       = module.acm.certificate_arn

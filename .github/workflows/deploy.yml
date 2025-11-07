@@ -198,20 +198,10 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
       - name: Get application URL
         id: url
         run: |
-          # Use AWS CLI or construct URL from known domain
-          # Since we know the domain from terraform.tfvars, we can construct it
+          # Application URL is known from terraform configuration
           APP_URL="tm.roodyadamsapp.com"
           echo "url=$APP_URL" >> $GITHUB_OUTPUT
 

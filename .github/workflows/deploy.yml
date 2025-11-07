@@ -37,9 +37,8 @@ jobs:
       - name: Get ECR repository URL
         id: ecr
         run: |
-          cd infra
-          terraform init -backend=false
-          ECR_URL=$(terraform output -raw ecr_repository_url)
+          # Get ECR repository URL using AWS CLI instead of Terraform
+          ECR_URL=$(aws ecr describe-repositories --repository-names aimapp-repo --region ${{ env.AWS_REGION }} --query 'repositories[0].repositoryUri' --output text)
           echo "repository=$ECR_URL" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
@@ -184,9 +183,9 @@ jobs:
       - name: Get application URL
         id: url
         run: |
-          cd infra
-          terraform init -backend=false
-          APP_URL=$(terraform output -raw application_url | sed 's|https://||')
+          # Use AWS CLI or construct URL from known domain
+          # Since we know the domain from terraform.tfvars, we can construct it
+          APP_URL="tm.roodyadamsapp.com"
           echo "url=$APP_URL" >> $GITHUB_OUTPUT
 
       - name: Wait for deployment

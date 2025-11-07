@@ -112,24 +112,10 @@ resource "aws_iam_role" "github_actions" {
   }
 }
 
-# Attach ECR policy for GitHub Actions
-resource "aws_iam_role_policy_attachment" "github_actions_ecr" {
-  count      = var.github_repo != "" ? 1 : 0
-  role       = aws_iam_role.github_actions[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
-}
-
-# Attach ECS policy for GitHub Actions
-resource "aws_iam_role_policy_attachment" "github_actions_ecs" {
-  count      = var.github_repo != "" ? 1 : 0
-  role       = aws_iam_role.github_actions[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonECS_FullAccess"
-}
-
-# Additional policy for Terraform operations (if using S3 backend)
-resource "aws_iam_role_policy" "github_actions_terraform" {
+# Comprehensive policy for GitHub Actions to manage all infrastructure
+resource "aws_iam_role_policy" "github_actions_full_access" {
   count = var.github_repo != "" ? 1 : 0
-  name  = "${var.project_name}-github-actions-terraform"
+  name  = "${var.project_name}-github-actions-full-access"
   role  = aws_iam_role.github_actions[0].id
 
   policy = jsonencode({
@@ -138,23 +124,34 @@ resource "aws_iam_role_policy" "github_actions_terraform" {
       {
         Effect = "Allow"
         Action = [
+          # ECR permissions
+          "ecr:*",
+          # ECS permissions
+          "ecs:*",
+          # IAM permissions (for creating roles, OIDC provider)
+          "iam:*",
+          # EC2/VPC permissions
+          "ec2:*",
+          # CloudWatch Logs permissions
+          "logs:*",
+          # ALB/ELB permissions
+          "elasticloadbalancing:*",
+          # ACM permissions
+          "acm:*",
+          # Route53 permissions
+          "route53:*",
+          # S3 permissions (for Terraform state if using S3 backend)
           "s3:GetObject",
           "s3:PutObject",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          "arn:aws:s3:::terraform-state-*",
-          "arn:aws:s3:::terraform-state-*/*"
-        ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
+          "s3:ListBucket",
+          "s3:DeleteObject",
+          # DynamoDB permissions (for Terraform state locking)
           "dynamodb:GetItem",
           "dynamodb:PutItem",
-          "dynamodb:DeleteItem"
+          "dynamodb:DeleteItem",
+          "dynamodb:DescribeTable"
         ]
-        Resource = "arn:aws:dynamodb:*:*:table/terraform-state-*"
+        Resource = "*"
       }
     ]
   })

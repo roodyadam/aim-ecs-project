@@ -57,13 +57,13 @@ module "ecs" {
 }
 
 # Route53 Module
-# Note: If Route53 lookup fails, you can provide hosted_zone_id directly
-# Get it with: aws route53 list-hosted-zones --query "HostedZones[?Name=='roodyadamsapp.com.'].Id" --output text
+# Note: Using Zone 1 (Z06988621L4AI5LXY4AF3) - this is the ACTIVE zone that the domain registrar points to
+# Zone 2 (Z03471512MMNKQA60WMUH) exists but domain doesn't use those nameservers
 module "route53" {
   source                              = "./modules/route53"
   domain_name                         = var.domain_name
   subdomain                           = var.subdomain
-  hosted_zone_id                      = "Z03471512MMNKQA60WMUH"  # Using zone ID directly - this is the zone the domain registrar points to
+  hosted_zone_id                      = "Z06988621L4AI5LXY4AF3"  # ACTIVE zone - domain uses these nameservers
   alb_dns_name                        = module.alb.alb_dns_name
   alb_zone_id                         = module.alb.alb_zone_id
   certificate_arn                     = module.acm.certificate_arn

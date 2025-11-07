@@ -48,9 +48,10 @@ data "aws_route53_zone" "main" {
 # }
 
 resource "aws_route53_record" "alb" {
-  zone_id = local.zone_id
-  name    = var.subdomain != "" ? "${var.subdomain}.${var.domain_name}" : var.domain_name
-  type    = "A"
+  zone_id         = local.zone_id
+  name            = var.subdomain != "" ? "${var.subdomain}.${var.domain_name}" : var.domain_name
+  type            = "A"
+  allow_overwrite = true  # Allow overwriting existing records in case of duplicate zones
 
   alias {
     name                   = var.alb_dns_name

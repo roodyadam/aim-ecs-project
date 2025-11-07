@@ -16,4 +16,4 @@ container_memory = 512
 # ECS Configuration
 desired_count = 1
 
-github_repo = "roodyadam/ECS-Project-Coderco"
+github_repo = "roodyadam/ECS-Coderco-project"

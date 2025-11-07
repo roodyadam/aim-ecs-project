@@ -131,7 +131,9 @@ jobs:
           tflint
         continue-on-error: true  # Don't fail pipeline on linting issues
 
-      # Skip Terraform Apply - infrastructure already exists and is managed locally
+      # Note: Terraform Plan/Apply are skipped because infrastructure is managed locally
+      # Terraform state is not shared between local and CI/CD
+      # Instead, we update ECS service directly with new image SHA
       # Update ECS task definition with new image SHA and redeploy service
       - name: Update ECS Task Definition with SHA Tag
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'

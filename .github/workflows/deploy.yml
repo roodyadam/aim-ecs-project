@@ -213,6 +213,11 @@ jobs:
           echo "ECS tasks can take 2-3 minutes to fully start after deployment"
           sleep 120
 
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
       - name: Check ECS Service Status
         id: ecs_check
         run: |

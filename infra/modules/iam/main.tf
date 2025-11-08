@@ -43,7 +43,6 @@ resource "aws_iam_role" "ecs_task" {
   }
 }
 
-# Allow task role to write to CloudWatch Logs
 resource "aws_iam_role_policy" "ecs_task_logs" {
   name = "${var.project_name}-ecs-task-logs-policy"
   role = aws_iam_role.ecs_task.id
@@ -62,7 +61,7 @@ resource "aws_iam_role_policy" "ecs_task_logs" {
   })
 }
 
-# GitHub OIDC Provider for GitHub Actions
+# OIDC Provider 
 resource "aws_iam_openid_connect_provider" "github" {
   count = var.github_repo != "" ? 1 : 0
   url   = "https://token.actions.githubusercontent.com"
@@ -72,8 +71,8 @@ resource "aws_iam_openid_connect_provider" "github" {
   ]
 
   thumbprint_list = [
-    "6938fd4d98bab03faadb97b34396831e3780aea1", # GitHub's OIDC thumbprint
-    "1c58a3a8518e8759bf075b76b750d4f2df264fcd"  # Backup thumbprint
+    "6938fd4d98bab03faadb97b34396831e3780aea1", 
+    "1c58a3a8518e8759bf075b76b750d4f2df264fcd"  
   ]
 
   tags = {
@@ -112,7 +111,7 @@ resource "aws_iam_role" "github_actions" {
   }
 }
 
-# Comprehensive policy for GitHub Actions to manage all infrastructure
+
 resource "aws_iam_role_policy" "github_actions_full_access" {
   count = var.github_repo != "" ? 1 : 0
   name  = "${var.project_name}-github-actions-full-access"
@@ -139,22 +138,10 @@ resource "aws_iam_role_policy" "github_actions_full_access" {
           # ACM permissions
           "acm:*",
           # Route53 permissions
-          "route53:*",
-          # S3 permissions 
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:ListBucket",
-          "s3:DeleteObject",
-          # DynamoDB permissions 
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:DeleteItem",
-          "dynamodb:DescribeTable"
+          "route53:*"
         ]
         Resource = "*"
       }
     ]
   })
 }
-
-

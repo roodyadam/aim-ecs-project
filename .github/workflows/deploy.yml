@@ -17,12 +17,51 @@ env:
   TFLINT_VERSION: v0.50.0
 
 jobs:
-  create-ecr:
-    name: Create ECR Repository
+  validate:
+    name: Terraform Validation
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Set up TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: ${{ env.TFLINT_VERSION }}
+
+      - name: Validate Terraform
+        run: |
+          cd infra
+          terraform init
+          terraform validate
+          tflint --init
+          tflint
+
+      - name: Scan Terraform with TfSec
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: infra
+          soft_fail: false
+
+  terraform-infra:
+    name: Terraform Bootstrap Infrastructure
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: validate
+    permissions:
+      id-token: write
+      contents: read
+    environment:
+      name: production
     
     steps:
       - name: Checkout code
@@ -39,16 +78,18 @@ jobs:
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      - name: Create ECR Repository
+      - name: Terraform Init, Plan, Apply (Infrastructure)
         run: |
           cd infra
           terraform init
-          terraform apply -target=module.ecr -auto-approve
+          terraform plan -var="image_tag=latest" -out=tfplan
+          terraform apply -auto-approve tfplan
 
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
-    needs: create-ecr
+    needs: terraform-infra
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       id-token: write
       contents: read
@@ -108,47 +149,13 @@ jobs:
         with:
           image-ref: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_NAME }}:${{ github.sha }}
           severity: 'CRITICAL,HIGH'
+          exit-code: '1'
 
-      - name: Scan Terraform with TfSec
-        uses: aquasecurity/tfsec-action@v1.0.0
-        with:
-          working_directory: infra
-          soft_fail: true
-
-  validate:
-    name: Terraform Validation
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-
-      - name: Set up TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: ${{ env.TFLINT_VERSION }}
-
-      - name: Validate Terraform
-        run: |
-          cd infra
-          terraform init
-          terraform validate
-          tflint --init
-          tflint
-
-  terraform:
-    name: Terraform Init, Plan, Apply
+  terraform-deploy:
+    name: Terraform Deploy ECS
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    needs: [build, security, validate]
+    needs: [build, security]
     permissions:
       id-token: write
       contents: read
@@ -170,17 +177,17 @@ jobs:
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      - name: Terraform Init, Plan, Apply
+      - name: Terraform Init, Plan, Apply (Update ECS)
         run: |
           cd infra
           terraform init
           terraform plan -var="image_tag=${{ github.sha }}" -out=tfplan
-          terraform apply tfplan
+          terraform apply -auto-approve tfplan
 
   health-check:
     name: Health Check
     runs-on: ubuntu-latest
-    needs: terraform
+    needs: terraform-deploy
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       id-token: write
@@ -193,12 +200,50 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Wait for deployment to stabilize
+      - name: Wait for ECS service to stabilize
         run: |
-          sleep 120
+          echo "Waiting for ECS service to become stable..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --region ${{ env.AWS_REGION }}
+          echo "ECS service is stable"
+
+      - name: Check ALB target health
+        run: |
+          TARGET_GROUP_ARN=$(aws elbv2 describe-target-groups \
+            --names aimapp-tg \
+            --region ${{ env.AWS_REGION }} \
+            --query 'TargetGroups[0].TargetGroupArn' \
+            --output text)
+          
+          if [ -z "$TARGET_GROUP_ARN" ] || [ "$TARGET_GROUP_ARN" == "None" ]; then
+            echo "ERROR: Target group 'aimapp-tg' not found"
+            exit 1
+          fi
+          
+          echo "Checking target group health..."
+          aws elbv2 describe-target-health \
+            --target-group-arn $TARGET_GROUP_ARN \
+            --region ${{ env.AWS_REGION }}
+          
+          HEALTHY_COUNT=$(aws elbv2 describe-target-health \
+            --target-group-arn $TARGET_GROUP_ARN \
+            --region ${{ env.AWS_REGION }} \
+            --query 'TargetHealthDescriptions[?TargetHealth.State==`healthy`] | length(@)' \
+            --output text)
+          
+          if [ "$HEALTHY_COUNT" -eq "0" ]; then
+            echo "ERROR: No healthy targets found"
+            exit 1
+          fi
+          
+          echo "Found $HEALTHY_COUNT healthy target(s)"
 
       - name: Deployment summary
         run: |
           echo "## Deployment Status" >> $GITHUB_STEP_SUMMARY
           echo "**Application:** https://${{ env.APP_URL }}" >> $GITHUB_STEP_SUMMARY
           echo "**Image SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Cluster:** ${{ env.ECS_CLUSTER }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Service:** ${{ env.ECS_SERVICE }}" >> $GITHUB_STEP_SUMMARY

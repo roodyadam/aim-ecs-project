@@ -4,25 +4,25 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:  # Manual triger 
+  workflow_dispatch:
 
 env:
   AWS_REGION: eu-west-2
+  AWS_ACCOUNT_ID: 147923156682
+  ECR_REPO_NAME: aimapp-repo
+  ECS_CLUSTER: aimapp-cluster
+  ECS_SERVICE: aimapp-service
+  APP_URL: tm.roodyadamsapp.com
   TERRAFORM_VERSION: 1.6.0
   TFLINT_VERSION: v0.50.0
 
 jobs:
-  # Job 1: Build & Push Docker Image to ECR
-  build-and-push:
-    name: Build & Push to ECR
+  build:
+    name: Build Docker Image
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-      image-digest: ${{ steps.build.outputs.digest }}
-      sha: ${{ github.sha }}
     
     steps:
       - name: Checkout code
@@ -34,46 +34,92 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Get ECR repository URL
-        id: ecr
-        run: |
-          # Get ECR repository URL using AWS CLI instead of Terraform
-          ECR_URL=$(aws ecr describe-repositories --repository-names aimapp-repo --region ${{ env.AWS_REGION }} --query 'repositories[0].repositoryUri' --output text)
-          echo "repository=$ECR_URL" >> $GITHUB_OUTPUT
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Amazon ECR
-        id: login-ecr
+      - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ steps.ecr.outputs.repository }}
-          tags: |
-            type=sha,prefix=,format=long
-            type=raw,value=latest,enable={{is_default_branch}}
-
       - name: Build and push Docker image
-        id: build
         uses: docker/build-push-action@v5
         with:
           context: ./aim
           file: ./aim/docker/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=registry,ref=${{ steps.ecr.outputs.repository }}:buildcache
-          cache-to: type=registry,ref=${{ steps.ecr.outputs.repository }}:buildcache,mode=max
+          tags: |
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_NAME }}:${{ github.sha }}
+            ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_NAME }}:latest
+          cache-from: type=registry,ref=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_NAME }}:buildcache,mode=max
 
-  # Job 2: Terraform Deploy 
-  terraform-deploy:
-    name: Terraform Deploy
+  security:
+    name: Security Scanning
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_NAME }}:${{ github.sha }}
+          severity: 'CRITICAL,HIGH'
+
+      - name: Scan Terraform with TfSec
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          working_directory: infra
+
+  validate:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Set up TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: ${{ env.TFLINT_VERSION }}
+
+      - name: Validate Terraform
+        run: |
+          cd infra
+          terraform fmt -check -recursive
+          terraform init
+          terraform validate
+          tflint --init
+          tflint
+
+  terraform:
+    name: Terraform Init, Plan, Apply
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [build, security, validate]
     permissions:
       id-token: write
       contents: read
@@ -90,108 +136,22 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Terraform
+      - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: ${{ env.TFLINT_VERSION }}
-
-      - name: Terraform Format Check
-        id: fmt
-        run: |
-          cd infra
-          terraform fmt -check
-          echo "fmt_exit_code=$?" >> $GITHUB_OUTPUT
-        continue-on-error: true
-
-      - name: Terraform Format
-        if: steps.fmt.outputs.fmt_exit_code != 0
-        run: |
-          cd infra
-          terraform fmt
-
-      - name: Terraform Init
+      - name: Terraform Init, Plan, Apply
         run: |
           cd infra
           terraform init
+          terraform plan -var="image_tag=${{ github.sha }}" -out=tfplan
+          terraform apply tfplan
 
-      - name: Terraform Validate
-        run: |
-          cd infra
-          terraform validate
-
-      - name: TFLint
-        run: |
-          cd infra
-          tflint --init
-          tflint
-        continue-on-error: true  
-
-     
-      - name: Update ECS Task Definition with SHA Tag
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: |
-          echo "Skipping Terraform apply - infrastructure already exists"
-          echo "Updating ECS task definition with new image SHA: ${{ needs.build-and-push.outputs.sha }}"
-          
-          # Install jq for JSON processing
-          sudo apt-get update && sudo apt-get install -y jq
-          
-          # Get current task definition
-          CLUSTER="aimapp-cluster"
-          SERVICE="aimapp-service"
-          ECR_REPO="147923156682.dkr.ecr.eu-west-2.amazonaws.com/aimapp-repo"
-          NEW_IMAGE="$ECR_REPO:${{ needs.build-and-push.outputs.sha }}"
-          
-          # Get current task definition ARN
-          TASK_DEF_ARN=$(aws ecs describe-services \
-            --cluster $CLUSTER \
-            --services $SERVICE \
-            --region ${{ env.AWS_REGION }} \
-            --query 'services[0].taskDefinition' \
-            --output text)
-          
-          echo "Current task definition: $TASK_DEF_ARN"
-          
-          # Get task definition JSON
-          aws ecs describe-task-definition \
-            --task-definition $TASK_DEF_ARN \
-            --region ${{ env.AWS_REGION }} \
-            --query 'taskDefinition' > /tmp/task-def.json
-          
-          # Update image in task definition
-          jq ".containerDefinitions[0].image = \"$NEW_IMAGE\"" /tmp/task-def.json > /tmp/new-task-def.json
-          
-          # Remove fields that can't be specified when registering new revision
-          jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)' /tmp/new-task-def.json > /tmp/final-task-def.json
-          
-          # Register new task definition
-          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --cli-input-json file:///tmp/final-task-def.json \
-            --region ${{ env.AWS_REGION }} \
-            --query 'taskDefinition.taskDefinitionArn' \
-            --output text)
-          
-          echo "New task definition: $NEW_TASK_DEF_ARN"
-          
-          # Update service to use new task definition
-          aws ecs update-service \
-            --cluster $CLUSTER \
-            --service $SERVICE \
-            --task-definition $NEW_TASK_DEF_ARN \
-            --region ${{ env.AWS_REGION }}
-          
-          echo "✅ ECS service updated with image: $NEW_IMAGE"
-
-  # Job 3: Post-Deploy Health Check
   health-check:
-    name: Post-Deploy Health Check
+    name: Health Check
     runs-on: ubuntu-latest
-    needs: terraform-deploy
+    needs: terraform
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       id-token: write
@@ -204,131 +164,12 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Wait for ECS deployment
+      - name: Wait for deployment to stabilize
         run: |
-          echo "Waiting 120 seconds for ECS service to stabilize and new tasks to start..."
-          echo "ECS tasks can take 2-3 minutes to fully start after deployment"
           sleep 120
 
-      - name: Install jq
+      - name: Deployment summary
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-
-      - name: Check ECS Service Status
-        id: ecs_check
-        run: |
-          CLUSTER="aimapp-cluster"
-          SERVICE="aimapp-service"
-          
-          echo "Checking ECS service deployment status..."
-          
-          # Wait for service to reach stable state
-          MAX_WAIT=300  # 5 minutes
-          WAIT_TIME=0
-          
-          while [ $WAIT_TIME -lt $MAX_WAIT ]; do
-            SERVICE_STATUS=$(aws ecs describe-services \
-              --cluster $CLUSTER \
-              --services $SERVICE \
-              --region ${{ env.AWS_REGION }} \
-              --query 'services[0].deployments[?status==`PRIMARY`].{running:runningCount,desired:desiredCount,status:status}' \
-              --output json)
-            
-            RUNNING=$(echo $SERVICE_STATUS | jq -r '.[0].running // 0')
-            DESIRED=$(echo $SERVICE_STATUS | jq -r '.[0].desired // 0')
-            STATUS=$(echo $SERVICE_STATUS | jq -r '.[0].status // "UNKNOWN"')
-            
-            echo "Service status: $STATUS | Running: $RUNNING/$DESIRED"
-            
-            if [ "$STATUS" = "PRIMARY" ] && [ "$RUNNING" -eq "$DESIRED" ] && [ "$DESIRED" -gt 0 ]; then
-              echo "✅ ECS service is stable with $RUNNING/$DESIRED tasks running"
-              echo "ecs_healthy=true" >> $GITHUB_OUTPUT
-              exit 0
-            fi
-            
-            echo "Waiting for service to stabilize... (${WAIT_TIME}s/${MAX_WAIT}s)"
-            sleep 15
-            WAIT_TIME=$((WAIT_TIME + 15))
-          done
-          
-          echo "⚠️  ECS service did not reach stable state within timeout"
-          echo "ecs_healthy=false" >> $GITHUB_OUTPUT
-
-      - name: Health Check via HTTP (Optional)
-        id: http_check
-        continue-on-error: true
-        run: |
-          APP_URL="tm.roodyadamsapp.com"
-          
-          echo "Attempting optional HTTP health check for: https://${APP_URL}/status"
-          echo "Note: This check may fail due to network/DNS issues from GitHub runners"
-          echo "If ECS service check passed, deployment is successful regardless of this result."
-          echo ""
-          
-          # Try health endpoint
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            --max-time 10 \
-            --connect-timeout 5 \
-            https://${APP_URL}/status 2>/dev/null || echo "000")
-          
-          if [ "$HTTP_CODE" = "200" ] || [ "${HTTP_CODE:0:1}" = "2" ]; then
-            echo "✅ HTTP health check passed! HTTP $HTTP_CODE"
-            echo "http_healthy=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          # Try root URL as fallback
-          ROOT_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            --max-time 10 \
-            --connect-timeout 5 \
-            https://${APP_URL}/ 2>/dev/null || echo "000")
-          
-          if [ "$ROOT_CODE" = "200" ]; then
-            echo "✅ Root URL is accessible (HTTP 200)"
-            echo "http_healthy=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          echo ""
-          echo "ℹ️  HTTP health check could not connect (Status: $HTTP_CODE, Root: $ROOT_CODE)"
-          echo "This is expected - GitHub Actions runners often have network/DNS limitations."
-          echo "ECS service status check is the primary health indicator and has passed."
-          echo "Your website is deployed and accessible at: https://${APP_URL}"
-          echo "http_healthy=false" >> $GITHUB_OUTPUT
-          exit 0  # Don't fail - this is optional
-
-      - name: Job Summary
-        if: always()
-        run: |
-          ECS_HEALTHY="${{ steps.ecs_check.outputs.ecs_healthy }}"
-          HTTP_HEALTHY="${{ steps.http_check.outputs.http_healthy }}"
-          
           echo "## Deployment Status" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image SHA:** ${{ needs.build-and-push.outputs.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Application URL:** https://tm.roodyadamsapp.com" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "$ECS_HEALTHY" = "true" ]; then
-            echo "✅ **ECS Service:** Healthy and running" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️  **ECS Service:** Still deploying or unstable" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [ "$HTTP_HEALTHY" = "true" ]; then
-            echo "✅ **HTTP Health Check:** Passed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "ℹ️  **HTTP Health Check:** Could not connect (expected - GitHub network limitations)" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ "$ECS_HEALTHY" = "true" ]; then
-            echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The ECS service is running and healthy. Your application is deployed successfully!" >> $GITHUB_STEP_SUMMARY
-            echo "Visit: https://tm.roodyadamsapp.com" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️  **Note:** ECS service may still be deploying. Verify manually at https://tm.roodyadamsapp.com" >> $GITHUB_STEP_SUMMARY
-          fi
-
+          echo "**Application:** https://${{ env.APP_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

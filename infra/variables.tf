@@ -28,13 +28,13 @@ variable "container_port" {
 }
 
 variable "container_cpu" {
-  description = "CPU units for the container (256, 512, 1024, 2048, 4096)"
+  description = "CPU units for the container"
   type        = number
   default     = 256
 }
 
 variable "container_memory" {
-  description = "Memory for the container in MB (512, 1024, 2048, etc.)"
+  description = "Memory for the container in MB"
   type        = number
   default     = 512
 }
@@ -48,11 +48,20 @@ variable "desired_count" {
 variable "github_repo" {
   description = "GitHub repository in format 'owner/repo-name' (e.g., 'username/repo') for OIDC setup"
   type        = string
-  default     = ""
 }
 
 variable "image_tag" {
   description = "Docker image tag to use for ECS task definition (defaults to 'latest')"
   type        = string
   default     = "latest"
+}
+
+variable "certificate_arn" {
+  description = "ARN of the ACM certificate for HTTPS"
+  type        = string
+}
+
+variable "hosted_zone_id" {
+  description = "Route53 hosted zone ID"
+  type        = string
 }

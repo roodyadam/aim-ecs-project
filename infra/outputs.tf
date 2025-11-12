@@ -15,7 +15,7 @@ output "alb_dns_name" {
 
 output "application_url" {
   description = "Application URL"
-  value       = var.subdomain != "" ? "https://${var.subdomain}.${var.domain_name}" : "https://${var.domain_name}"
+  value       = "https://${var.subdomain}.${var.domain_name}"
 }
 
 output "ecs_cluster_name" {

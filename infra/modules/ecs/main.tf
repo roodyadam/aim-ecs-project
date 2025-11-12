@@ -67,10 +67,11 @@ resource "aws_ecs_service" "app" {
   launch_type     = "FARGATE"
   desired_count   = var.desired_count
 
+  
   network_configuration {
     subnets          = var.subnet_ids
     security_groups  = [aws_security_group.ecs_sg.id]
-    assign_public_ip = true
+    assign_public_ip = false
   }
 
   load_balancer {
@@ -78,6 +79,4 @@ resource "aws_ecs_service" "app" {
     container_name   = "app"
     container_port   = var.container_port
   }
-
-  depends_on = [aws_ecs_task_definition.app]
 }

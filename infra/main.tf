@@ -12,10 +12,8 @@ module "ecr" {
 
 # ACM Certificate Module
 module "acm" {
-  source                   = "./modules/acm"
-  domain_name              = var.domain_name
-  subdomain                = var.subdomain
-  existing_certificate_arn = "arn:aws:acm:eu-west-2:147923156682:certificate/afd13bd7-da22-443a-a567-8ae7f04c7009" 
+  source          = "./modules/acm"
+  certificate_arn = var.certificate_arn
 }
 
 # ALB Module
@@ -25,7 +23,6 @@ module "alb" {
   vpc_id          = module.vpc.vpc_id
   subnet_ids      = module.vpc.public_subnet_ids
   certificate_arn = module.acm.certificate_arn
-  enable_https    = true
 }
 
 # IAM Module
@@ -41,7 +38,7 @@ module "ecs" {
   project_name       = var.project_name
   ecr_repo_url       = module.ecr.repository_url
   vpc_id             = module.vpc.vpc_id
-  subnet_ids         = module.vpc.public_subnet_ids
+  subnet_ids         = module.vpc.private_subnet_ids
   target_group_arn   = module.alb.target_group_arn
   alb_sg_id          = module.alb.sg_id
   aws_region         = var.aws_region
@@ -56,12 +53,10 @@ module "ecs" {
 
 # Route53 Module
 module "route53" {
-  source                                = "./modules/route53"
-  domain_name                           = var.domain_name
-  subdomain                             = var.subdomain
-  hosted_zone_id                        = "Z06988621L4AI5LXY4AF3" 
-  alb_dns_name                          = module.alb.alb_dns_name
-  alb_zone_id                           = module.alb.alb_zone_id
-  certificate_arn                       = module.acm.certificate_arn
-  certificate_domain_validation_options = module.acm.certificate_domain_validation_options
+  source         = "./modules/route53"
+  domain_name    = var.domain_name
+  subdomain      = var.subdomain
+  hosted_zone_id = var.hosted_zone_id
+  alb_dns_name   = module.alb.alb_dns_name
+  alb_zone_id    = module.alb.alb_zone_id
 }

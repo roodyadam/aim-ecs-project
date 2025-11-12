@@ -6,7 +6,6 @@ variable "project_name" {
 variable "github_repo" {
   description = "GitHub repository in format 'owner/repo-name' (e.g., 'username/repo')"
   type        = string
-  default     = ""
 }
 
 

@@ -10,7 +10,7 @@ output "ecs_task_role_arn" {
 
 output "github_actions_role_arn" {
   description = "ARN of the GitHub Actions IAM role"
-  value       = var.github_repo != "" ? aws_iam_role.github_actions[0].arn : ""
+  value       = aws_iam_role.github_actions.arn
 }
 
 

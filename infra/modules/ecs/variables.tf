@@ -1,29 +1,36 @@
 variable "project_name" {
-  type = string
+  description = "Project name for resource naming"
+  type        = string
 }
 
 variable "ecr_repo_url" {
-  type = string
+  description = "URL of the ECR repository"
+  type        = string
 }
 
 variable "vpc_id" {
-  type = string
+  description = "VPC ID where ECS resources will be created"
+  type        = string
 }
 
 variable "subnet_ids" {
-  type = list(string)
+  description = "List of subnet IDs for ECS tasks"
+  type        = list(string)
 }
 
 variable "target_group_arn" {
-  type = string
+  description = "ARN of the ALB target group"
+  type        = string
 }
 
 variable "alb_sg_id" {
-  type = string
+  description = "Security group ID of the ALB"
+  type        = string
 }
 
 variable "aws_region" {
-  type = string
+  description = "AWS region for resources"
+  type        = string
 }
 
 variable "container_port" {
@@ -60,4 +67,10 @@ variable "image_tag" {
   description = "Docker image tag to use (defaults to 'latest')"
   type        = string
   default     = "latest"
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch log retention in days"
+  type        = number
+  default     = 7
 }

@@ -1,3 +1,7 @@
+terraform {
+  required_version = ">= 1.6.0"
+}
+
 module "vpc" {
   source       = "./modules/vpc"
   project_name = var.project_name

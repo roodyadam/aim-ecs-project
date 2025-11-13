@@ -74,6 +74,10 @@ resource "aws_iam_openid_connect_provider" "github" {
   tags = {
     Name = "${var.project_name}-github-oidc"
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_iam_role" "github_actions" {
@@ -102,6 +106,10 @@ resource "aws_iam_role" "github_actions" {
 
   tags = {
     Name = "${var.project_name}-github-actions"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
 

@@ -1,0 +1,69 @@
+name: Bootstrap OIDC and IAM
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-west-2
+  TERRAFORM_VERSION: 1.6.0
+
+jobs:
+  bootstrap-iam:
+    name: Bootstrap IAM and OIDC Provider
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (Access Keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Bootstrap IAM (OIDC Provider + IAM Role)
+        run: |
+          cd infra
+          terraform init -backend=false
+          terraform apply -target=module.iam -auto-approve
+          
+      - name: Get IAM Role ARN
+        id: get-role-arn
+        run: |
+          cd infra
+          ROLE_ARN=$(aws iam get-role --role-name aimapp-github-actions-role --region ${{ env.AWS_REGION }} --query 'Role.Arn' --output text 2>/dev/null || echo "")
+          if [ -z "$ROLE_ARN" ]; then
+            echo "Error: Could not retrieve IAM role ARN"
+            exit 1
+          fi
+          echo "role_arn=$ROLE_ARN" >> $GITHUB_OUTPUT
+          echo "IAM Role ARN: $ROLE_ARN"
+          
+      - name: Bootstrap Complete Summary
+        run: |
+          echo "## ✅ Bootstrap Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**IAM Role ARN:** \`${{ steps.get-role-arn.outputs.role_arn }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Copy the IAM Role ARN above: \`${{ steps.get-role-arn.outputs.role_arn }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Go to **Repository Settings → Secrets and variables → Actions**" >> $GITHUB_STEP_SUMMARY
+          echo "3. Click **New repository secret**" >> $GITHUB_STEP_SUMMARY
+          echo "4. Name: \`AWS_GITHUB_ACTIONS_ROLE_ARN\`" >> $GITHUB_STEP_SUMMARY
+          echo "5. Value: \`${{ steps.get-role-arn.outputs.role_arn }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "6. Click **Add secret**" >> $GITHUB_STEP_SUMMARY
+          echo "7. After setting the secret, your main CI/CD workflow will work automatically!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔒 Protection Enabled" >> $GITHUB_STEP_SUMMARY
+          echo "The OIDC provider and IAM role are protected from accidental deletion." >> $GITHUB_STEP_SUMMARY
+          echo "You can now run \`terraform destroy\` safely - these resources will remain." >> $GITHUB_STEP_SUMMARY
+

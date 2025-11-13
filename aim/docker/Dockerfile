@@ -1,5 +1,5 @@
 # Builder stage - compiles Cython extensions
-FROM python:3.9-slim-bookworm AS builder
+FROM python:3.11-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -15,10 +15,17 @@ COPY . .
 RUN pip install --no-cache-dir .
 
 # Runtime stage - minimal image
-FROM python:3.9-slim-bookworm
+FROM python:3.11-slim-bookworm
+
+# Update packages to fix security vulnerabilities
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get dist-upgrade -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy compiled packages and CLI from builder
-COPY --from=builder /usr/local/lib/python3.9/site-packages /usr/local/lib/python3.9/site-packages
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 EXPOSE 80

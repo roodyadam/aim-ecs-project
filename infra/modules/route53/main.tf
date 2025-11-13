@@ -2,7 +2,7 @@ resource "aws_route53_record" "alb" {
   zone_id         = var.hosted_zone_id
   name            = "${var.subdomain}.${var.domain_name}"
   type            = "A"
-  allow_overwrite = true
+  allow_overwrite = true 
 
   alias {
     name                   = var.alb_dns_name

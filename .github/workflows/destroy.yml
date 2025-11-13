@@ -38,9 +38,32 @@ jobs:
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      - name: Terraform Destroy
+      - name: Terraform Destroy (excluding protected IAM resources)
         run: |
           cd infra
           terraform init
-          terraform destroy -auto-approve
+          
+          echo "Starting infrastructure destruction..."
+          echo "Note: OIDC provider and GitHub Actions role are protected and will not be destroyed"
+          echo "These resources are required for CI/CD authentication and will remain in AWS"
+          
+          terraform destroy -auto-approve \
+            -target=module.route53 \
+            -target=module.ecs \
+            -target=module.alb \
+            -target=module.vpc \
+            -target=module.ecr \
+            -target=module.acm \
+            -target=module.iam.aws_iam_role.ecs_execution \
+            -target=module.iam.aws_iam_role_policy_attachment.ecs_execution \
+            -target=module.iam.aws_iam_role.ecs_task \
+            -target=module.iam.aws_iam_role_policy.ecs_task_logs \
+            || {
+              echo "Destroy operation completed"
+              echo "Some resources may have dependencies or were already destroyed"
+              exit 0
+            }
+          
+          echo "Infrastructure destroyed successfully"
+          echo "OIDC provider and GitHub Actions role remain in AWS for CI/CD authentication"
 

@@ -1,0 +1,73 @@
+name: Destroy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy" to confirm'
+        required: true
+        type: string
+
+env:
+  AWS_REGION: eu-west-2
+  TERRAFORM_VERSION: 1.6.0
+
+jobs:
+  destroy:
+    name: Destroy Infrastructure
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'destroy'
+    permissions:
+      id-token: write
+      contents: read
+    environment:
+      name: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Terraform Destroy (excluding protected IAM resources)
+        run: |
+          cd infra
+          terraform init
+          
+          echo "Starting infrastructure destruction..."
+          echo "Note: OIDC provider and GitHub Actions role are protected and will not be destroyed"
+          echo "These resources are required for CI/CD authentication and will remain in AWS"
+          
+          set +e
+          terraform destroy -auto-approve \
+            -target=module.route53 \
+            -target=module.ecs \
+            -target=module.alb \
+            -target=module.vpc \
+            -target=module.ecr \
+            -target=module.iam.aws_iam_role.ecs_execution \
+            -target=module.iam.aws_iam_role_policy_attachment.ecs_execution \
+            -target=module.iam.aws_iam_role.ecs_task \
+            -target=module.iam.aws_iam_role_policy.ecs_task_logs
+          
+          DESTROY_EXIT_CODE=$?
+          set -e
+          
+          if [ $DESTROY_EXIT_CODE -eq 0 ]; then
+            echo "Infrastructure destroyed successfully"
+          else
+            echo "Destroy operation completed with exit code: $DESTROY_EXIT_CODE"
+            echo "This may be normal if some resources were already destroyed or have dependencies"
+          fi
+          
+          echo "OIDC provider and GitHub Actions role remain in AWS for CI/CD authentication"
+

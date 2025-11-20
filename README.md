@@ -2,136 +2,50 @@
 
 A production-ready infrastructure-as-code project for deploying [Aim](https://github.com/aimhubio/aim) (an open-source ML experiment tracking tool) on AWS ECS using Terraform and GitHub Actions CI/CD.
 
-## 🏗️ Architecture Diagram
+## Architecture Diagram
 
 ![AWS Architecture Diagram](docs/architecturre.jpeg)
 
 *Architecture diagram showing the complete AWS infrastructure setup for the Aim application deployment on ECS Fargate.*
 
-## 📋 Description of the Project
+## Deployment Status
 
-This project provides a complete infrastructure setup for running Aim on AWS Elastic Container Service (ECS) with:
+![CI/CD Pipeline](docs/ci:cd.jpeg)
 
-- **Infrastructure as Code**: Modular Terraform configuration for AWS resources
-- **CI/CD Pipeline**: Automated deployment via GitHub Actions
-- **Containerized Application**: Docker-based deployment of Aim
-- **Production-Ready**: Load balancing, SSL/TLS, high availability, and security best practices
-- **Scalable Architecture**: ECS Fargate with auto-scaling capabilities
+*The CI/CD pipeline successfully passing all stages including Terraform validation, Docker image build, security scanning with Trivy and TfSec, and infrastructure deployment to AWS.*
 
-### Key Features
+![Aim Web Application](docs/AIM-WEB.jpeg)
 
-- 🚀 **Automated Deployments**: Push to main branch triggers automatic deployment
-- 🔒 **Secure**: HTTPS with ACM certificates, private subnets, security groups
-- 📊 **Monitoring**: CloudWatch logs and Container Insights enabled
-- 🔄 **CI/CD**: GitHub Actions with OIDC authentication
-- 🏗️ **Modular Design**: Reusable Terraform modules for VPC, ECS, ALB, ECR, Route53, IAM
-- 🛡️ **Security Scanning**: Trivy and TfSec security scans in pipeline
+*The Aim web application running in production with HTTPS encryption on the custom domain https://tm.roodyadamsapp.com, deployed on AWS ECS Fargate.*
 
-## 🎬 Demo of the Application
+## Description of the Project
 
-### Live Application
-- **URL**: https://tm.roodyadamsapp.com
-- **Status**: Production deployment on AWS ECS
+This project sets up the infrastructure needed to run Aim on AWS Elastic Container Service (ECS). It includes modular Terraform configurations for all AWS resources, automated deployment through GitHub Actions, and a Docker-based container setup.
 
-### What is Aim?
-Aim is an open-source, self-hostable experiment tracking tool for machine learning. It provides:
-- Experiment tracking and visualization
-- Metrics, parameters, and artifacts logging
-- Web-based UI for exploring experiments
-- Integration with popular ML frameworks (PyTorch, TensorFlow, Keras, etc.)
+The infrastructure is production-ready with load balancing, SSL/TLS certificates, high availability across multiple availability zones, and security best practices built in. The architecture uses ECS Fargate for serverless container hosting, which scales automatically based on demand.
 
-### Application Features
-- Track ML experiments and runs
-- Visualize metrics and compare runs
-- Search and filter experiments
-- Store artifacts and model checkpoints
-- Real-time experiment monitoring
+Key features include automated deployments that trigger on pushes to the main branch, HTTPS encryption with ACM certificates, private subnets for application security, CloudWatch logging and monitoring, GitHub Actions CI/CD with OIDC authentication, and reusable Terraform modules for VPC, ECS, ALB, ECR, Route53, and IAM. The pipeline also includes security scanning with Trivy and TfSec.
 
-## 🏗️ Architecture Diagram
+## Demo of the Application
 
-The infrastructure follows AWS best practices with a multi-tier architecture:
+The application is live at https://tm.roodyadamsapp.com and running in production on AWS ECS.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    AWS Cloud (eu-west-2)                │
-│                                                          │
-│  ┌─────────────┐                                        │
-│  │  Route53    │ (DNS Resolution)                       │
-│  └──────┬──────┘                                        │
-│         │                                                │
-│         ↓                                                │
-│  ┌─────────────┐                                        │
-│  │     ACM     │ (SSL/TLS Certificate)                  │
-│  └──────┬──────┘                                        │
-│         │                                                │
-│         ↓                                                │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │              VPC                                 │  │
-│  │                                                  │  │
-│  │  ┌────────────────────────────────────────────┐ │  │
-│  │  │   PUBLIC SUBNETS (AZ-1, AZ-2)              │ │  │
-│  │  │   ┌─────────────────────┐                  │ │  │
-│  │  │   │   ALB               │ (Port 80/443)    │ │  │
-│  │  │   │   (Load Balancer)   │                  │ │  │
-│  │  │   └──────┬──────────────┘                  │ │  │
-│  │  │          │                                 │ │  │
-│  │  │   ┌──────┴──────────────┐                 │ │  │
-│  │  │   │   NAT Gateway       │                 │ │  │
-│  │  │   └─────────────────────┘                 │ │  │
-│  │  └────────────────────────────────────────────┘ │  │
-│  │          │                                       │  │
-│  │          ↓                                       │  │
-│  │  ┌────────────────────────────────────────────┐ │  │
-│  │  │   PRIVATE SUBNETS (AZ-1, AZ-2)            │ │  │
-│  │  │   ┌─────────────────────┐                  │ │  │
-│  │  │   │   ECS Fargate Tasks │                  │ │  │
-│  │  │   │   (Aim Application)  │                  │ │  │
-│  │  │   └─────────────────────┘                  │ │  │
-│  │  └────────────────────────────────────────────┘ │  │
-│  └──────────────────────────────────────────────────┘  │
-│                                                          │
-│  ┌─────────────┐                                        │
-│  │     ECR     │ (Container Registry)                   │
-│  └─────────────┘                                        │
-│                                                          │
-│  ┌─────────────┐                                        │
-│  │ CloudWatch  │ (Logging & Monitoring)                 │
-│  └─────────────┘                                        │
-└─────────────────────────────────────────────────────────┘
-```
+Aim is an open-source experiment tracking tool for machine learning. It lets you track experiments, log metrics and parameters, visualize results through a web-based UI, and integrate with popular ML frameworks like PyTorch, TensorFlow, and Keras.
 
-### Architecture Components
+You can use it to track ML experiments and runs, visualize metrics and compare different runs, search and filter experiments, store artifacts and model checkpoints, and monitor experiments in real-time.
 
-- **Route53**: DNS service for domain routing
-- **ACM**: SSL/TLS certificate management
-- **VPC**: Isolated network environment with public/private subnets
-- **ALB**: Application Load Balancer for traffic distribution
-- **ECS Fargate**: Serverless container hosting for Aim
-- **ECR**: Docker container image registry
-- **CloudWatch**: Logging and monitoring
-- **NAT Gateway**: Outbound internet access for private subnets
+## Local Setup
 
-## 🚀 Local Setup
+You'll need an AWS account with appropriate permissions, Terraform 1.6.0 or higher, AWS CLI configured with your credentials, Docker for local development, Python 3.11 or higher for local Aim development, and Git.
 
-### Prerequisites
-
-- **AWS Account** with appropriate permissions
-- **Terraform** >= 1.6.0
-- **AWS CLI** configured with credentials
-- **Docker** (for local development)
-- **Python 3.11+** (for local Aim development)
-- **Git**
-
-### 1. Clone the Repository
+Start by cloning the repository:
 
 ```bash
 git clone https://github.com/roodyadam/aim-ecs-project.git
 cd aim-ecs-project
 ```
 
-### 2. Configure Terraform Variables
-
-Create a `terraform.tfvars` file in the `infra/` directory:
+Create a `terraform.tfvars` file in the `infra/` directory with your configuration:
 
 ```hcl
 aws_region = "eu-west-2"
@@ -147,110 +61,73 @@ certificate_arn = "arn:aws:acm:region:account:certificate/cert-id"
 hosted_zone_id = "Z1234567890ABC"
 ```
 
-**Note**: `terraform.tfvars` is in `.gitignore` for security. Never commit sensitive values.
+Note that `terraform.tfvars` is in `.gitignore` for security, so never commit sensitive values.
 
-### 3. Set Up AWS Backend (One-time)
+Before running Terraform, make sure you have an S3 bucket for Terraform state and a DynamoDB table for state locking. Update the backend configuration in `infra/main.tf` with your bucket and table names.
 
-Before running Terraform, ensure you have:
-- S3 bucket for Terraform state (update `infra/main.tf` backend config)
-- DynamoDB table for state locking (update `infra/main.tf` backend config)
-
-### 4. Initialize and Deploy Infrastructure
+To deploy the infrastructure:
 
 ```bash
 cd infra
-
-# Initialize Terraform
 terraform init
-
-# Review the plan
 terraform plan
-
-# Apply infrastructure
 terraform apply
 ```
-
-### 5. Local Development with Aim
 
 For local development of the Aim application:
 
 ```bash
 cd aim
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Run Aim locally
 aim up --host 0.0.0.0 --port 8080
 ```
 
-Access Aim UI at: http://localhost:8080
+The Aim UI will be available at http://localhost:8080.
 
-### 6. Build and Test Docker Image Locally
+To build and test the Docker image locally:
 
 ```bash
 cd aim
-
-# Build Docker image
 docker build -t aim-app:local -f docker/Dockerfile .
-
-# Run container locally
 docker run -p 8080:80 aim-app:local
 ```
 
-### 7. CI/CD Setup
+For CI/CD setup, configure the `AWS_GITHUB_ACTIONS_ROLE_ARN` secret in your GitHub repository under Settings → Secrets and variables → Actions. The workflow environment variables are already configured in the deploy and destroy workflow files.
 
-#### GitHub Actions Secrets
+Deployments happen automatically when you push to the main branch, or you can trigger them manually from the Actions tab. To destroy infrastructure, go to Actions → Destroy Infrastructure → Run workflow and type "destroy" to confirm.
 
-Configure these secrets in your GitHub repository (Settings → Secrets and variables → Actions):
-
-- `AWS_GITHUB_ACTIONS_ROLE_ARN`: ARN of the IAM role for GitHub Actions OIDC
-
-The workflow environment variables are already configured in `.github/workflows/deploy.yml` and `.github/workflows/destroy.yml`.
-
-#### Deploy via GitHub Actions
-
-1. **Automatic**: Push to `main` branch triggers deployment
-2. **Manual**: Go to Actions → Deploy → Run workflow
-
-#### Destroy Infrastructure
-
-Go to Actions → Destroy Infrastructure → Run workflow → Type "destroy" to confirm
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 aim-ecs-project/
 ├── .github/
 │   └── workflows/
-│       ├── deploy.yml          # CI/CD deployment pipeline
-│       └── destroy.yml          # Infrastructure destruction workflow
-├── aim/                         # Aim application code
-│   ├── aim/                     # Aim Python package
+│       ├── deploy.yml
+│       └── destroy.yml
+├── aim/
+│   ├── aim/
 │   ├── docker/
-│   │   └── Dockerfile          # Container image definition
-│   └── main.py                 # Application entry point
-├── infra/                       # Terraform infrastructure
-│   ├── main.tf                  # Main Terraform configuration
-│   ├── variables.tf             # Variable definitions
-│   ├── outputs.tf               # Output values
-│   ├── terraform.tfvars         # Local variable values (gitignored)
-│   └── modules/                 # Reusable Terraform modules
-│       ├── vpc/                 # VPC and networking
-│       ├── ecs/                 # ECS cluster and service
-│       ├── alb/                 # Application Load Balancer
-│       ├── ecr/                 # Container registry
-│       ├── iam/                 # IAM roles and policies
-│       ├── route53/             # DNS configuration
-│       └── acm/                 # SSL certificate
-└── README.md                    # This file
+│   │   └── Dockerfile
+│   └── main.py
+├── infra/
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── outputs.tf
+│   ├── terraform.tfvars
+│   └── modules/
+│       ├── vpc/
+│       ├── ecs/
+│       ├── alb/
+│       ├── ecr/
+│       ├── iam/
+│       ├── route53/
+│       └── acm/
+└── README.md
 ```
 
-## 🔧 Configuration
+## Configuration
 
-### Environment Variables (Workflows)
-
-The following environment variables are configured in GitHub Actions workflows:
+The GitHub Actions workflows use these environment variables:
 
 - `AWS_REGION`: AWS region (eu-west-2)
 - `DOMAIN_NAME`: Your domain name
@@ -258,74 +135,67 @@ The following environment variables are configured in GitHub Actions workflows:
 - `CERTIFICATE_ARN`: ACM certificate ARN for HTTPS
 - `HOSTED_ZONE_ID`: Route53 hosted zone ID
 
-### Terraform Variables
-
-Key variables you can customize:
+You can customize these Terraform variables:
 
 - `container_cpu`: CPU units for ECS tasks (default: 256)
 - `container_memory`: Memory in MB for ECS tasks (default: 512)
 - `desired_count`: Number of ECS tasks to run (default: 1)
 - `subdomain`: Subdomain for the application (default: "tm")
 
-## 🛠️ Development
+## Development
 
-### Running Tests
+Run tests with:
 
 ```bash
 cd aim
 pytest tests/
 ```
 
-### Linting
+For linting:
 
 ```bash
-# Terraform
 cd infra
 terraform fmt -check
 tflint
 
-# Python
 cd aim
 ruff check .
 ```
 
-### Security Scanning
+The CI/CD pipeline automatically runs TfSec for Terraform security scanning and Trivy for Docker image vulnerability scanning.
 
-The CI/CD pipeline automatically runs:
-- **TfSec**: Terraform security scanning
-- **Trivy**: Docker image vulnerability scanning
-
-## 📚 Additional Resources
+## Additional Resources
 
 - [Aim Documentation](https://aimstack.readthedocs.io/)
 - [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
 - [AWS ECS Documentation](https://docs.aws.amazon.com/ecs/)
 
-## 🔐 Security
+## Security
 
-- Terraform state stored in encrypted S3 bucket
-- State locking via DynamoDB
-- Private subnets for ECS tasks
-- Security groups with least privilege access
-- HTTPS/TLS encryption for all traffic
-- OIDC authentication for GitHub Actions (no long-lived credentials)
+The infrastructure follows security best practices:
 
-## 📝 License
+- Terraform state is stored in an encrypted S3 bucket
+- State locking is handled via DynamoDB
+- ECS tasks run in private subnets
+- Security groups use least privilege access
+- All traffic is encrypted with HTTPS/TLS
+- GitHub Actions uses OIDC authentication instead of long-lived credentials
+
+## License
 
 This project uses the Aim open-source license. See `aim/LICENSE` for details.
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
 
-## 📧 Contact
+## Contact
 
 For issues and questions, please open an issue on GitHub.
 
 ---
 
-**Note**: This is an infrastructure project. The Aim application code is included as a subdirectory. For Aim-specific contributions, refer to the [Aim repository](https://github.com/aimhubio/aim).
-
+Note: This is an infrastructure project. The Aim application code is included as a subdirectory. For Aim-specific contributions, refer to the [Aim repository](https://github.com/aimhubio/aim).

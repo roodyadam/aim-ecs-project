@@ -4,17 +4,17 @@ A production-ready infrastructure-as-code project for deploying [Aim](https://gi
 
 ## Architecture Diagram
 
-![AWS Architecture Diagram](docs/architecturre.jpeg)
+![AWS Architecture Diagram](images/architecturre.jpeg)
 
 *Architecture diagram showing the complete AWS infrastructure setup for the Aim application deployment on ECS Fargate.*
 
 ## Deployment Status
 
-![CI/CD Pipeline](docs/ci:cd.jpeg)
+![CI/CD Pipeline](images/ci:cd.jpeg)
 
 *The CI/CD pipeline successfully passing all stages including Terraform validation, Docker image build, security scanning with Trivy and TfSec, and infrastructure deployment to AWS.*
 
-![Aim Web Application](docs/AIM-WEB.jpeg)
+![Aim Web Application](imeages/AIM-WEB.jpeg)
 
 *The Aim web application running in production with HTTPS encryption on the custom domain https://tm.roodyadamsapp.com, deployed on AWS ECS Fargate.*
 

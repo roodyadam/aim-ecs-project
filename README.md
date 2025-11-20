@@ -4,7 +4,7 @@ A production-ready infrastructure-as-code project for deploying [Aim](https://gi
 
 ## 🏗️ Architecture Diagram
 
-![AWS Architecture Diagram](docs/Screenshot 2025-11-20 at 9.19.35 PM.png)
+![AWS Architecture Diagram](docs/architecturre.jpeg)
 
 *Architecture diagram showing the complete AWS infrastructure setup for the Aim application deployment on ECS Fargate.*
 

@@ -37,10 +37,7 @@ ENV/
 # Logs
 *.log
 
-# Documentation files (explanations)
-D1.md
-IAM.md
-INFRA.md
+
 
 
 

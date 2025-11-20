@@ -15,7 +15,6 @@ env:
   APP_URL: tm.roodyadamsapp.com
   TERRAFORM_VERSION: 1.6.0
   TFLINT_VERSION: v0.50.0
-  # Terraform variables
   DOMAIN_NAME: roodyadamsapp.com
   GITHUB_REPO: roodyadam/aim-ecs-project
   CERTIFICATE_ARN: arn:aws:acm:eu-west-2:147923156682:certificate/afd13bd7-da22-443a-a567-8ae7f04c7009

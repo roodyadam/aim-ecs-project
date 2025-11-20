@@ -11,6 +11,11 @@ on:
 env:
   AWS_REGION: eu-west-2
   TERRAFORM_VERSION: 1.6.0
+  # Terraform variables
+  DOMAIN_NAME: roodyadamsapp.com
+  GITHUB_REPO: roodyadam/aim-ecs-project
+  CERTIFICATE_ARN: arn:aws:acm:eu-west-2:147923156682:certificate/afd13bd7-da22-443a-a567-8ae7f04c7009
+  HOSTED_ZONE_ID: Z06988621L4AI5LXY4AF3
 
 jobs:
   destroy:
@@ -49,6 +54,10 @@ jobs:
           
           set +e
           terraform destroy -auto-approve \
+            -var="domain_name=${{ env.DOMAIN_NAME }}" \
+            -var="github_repo=${{ env.GITHUB_REPO }}" \
+            -var="certificate_arn=${{ env.CERTIFICATE_ARN }}" \
+            -var="hosted_zone_id=${{ env.HOSTED_ZONE_ID }}" \
             -target=module.route53 \
             -target=module.ecs \
             -target=module.alb \

@@ -4,6 +4,8 @@
 *.tfstate.*
 *.tfplan
 .terraform.lock.hcl
+*.tfvars
+*.tfvars.json
 
 # Terraform provider binaries 
 infra/.terraform/providers/

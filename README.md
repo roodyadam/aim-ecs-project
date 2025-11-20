@@ -14,7 +14,7 @@ A production-ready infrastructure-as-code project for deploying [Aim](https://gi
 
 *The CI/CD pipeline successfully passing all stages including Terraform validation, Docker image build, security scanning with Trivy and TfSec, and infrastructure deployment to AWS.*
 
-![Aim Web Application](imeages/AIM-WEB.jpeg)
+![Aim Web Application](images/AIM-WEB.jpeg)
 
 *The Aim web application running in production with HTTPS encryption on the custom domain https://tm.roodyadamsapp.com, deployed on AWS ECS Fargate.*
 

@@ -191,11 +191,3 @@ This project uses the Aim open-source license. See `aim/LICENSE` for details.
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
-
-## Contact
-
-For issues and questions, please open an issue on GitHub.
-
----
-
-Note: This is an infrastructure project. The Aim application code is included as a subdirectory. For Aim-specific contributions, refer to the [Aim repository](https://github.com/aimhubio/aim).

@@ -34,16 +34,16 @@ This demo shows the Aim web application interface and demonstrates how it tracks
 
 ## Local Setup
 
-You'll need an AWS account with appropriate permissions, Terraform 1.6.0 or higher, AWS CLI configured with your credentials, Docker for local development, Python 3.11 or higher for local Aim development, and Git.
+Prerequisites: AWS account, Terraform 1.6.0+, AWS CLI, Docker, Python 3.11+, Git.
 
-Start by cloning the repository:
+Clone the repository:
 
 ```bash
 git clone https://github.com/roodyadam/aim-ecs-project.git
 cd aim-ecs-project
 ```
 
-Create a `terraform.tfvars` file in the `infra/` directory with your configuration:
+Create `infra/terraform.tfvars` with your configuration:
 
 ```hcl
 aws_region = "eu-west-2"
@@ -59,11 +59,7 @@ certificate_arn = "arn:aws:acm:region:account:certificate/cert-id"
 hosted_zone_id = "Z1234567890ABC"
 ```
 
-Note that `terraform.tfvars` is in `.gitignore` for security, so never commit sensitive values.
-
-Before running Terraform, make sure you have an S3 bucket for Terraform state and a DynamoDB table for state locking. Update the backend configuration in `infra/main.tf` with your bucket and table names.
-
-To deploy the infrastructure:
+Update the S3 backend in `infra/main.tf` with your bucket and DynamoDB table names, then deploy:
 
 ```bash
 cd infra
@@ -72,7 +68,7 @@ terraform plan
 terraform apply
 ```
 
-For local development of the Aim application:
+For local development:
 
 ```bash
 cd aim
@@ -80,19 +76,7 @@ pip install -r requirements.txt
 aim up --host 0.0.0.0 --port 8080
 ```
 
-The Aim UI will be available at http://localhost:8080.
-
-To build and test the Docker image locally:
-
-```bash
-cd aim
-docker build -t aim-app:local -f docker/Dockerfile .
-docker run -p 8080:80 aim-app:local
-```
-
-For CI/CD setup, configure the `AWS_GITHUB_ACTIONS_ROLE_ARN` secret in your GitHub repository under Settings → Secrets and variables → Actions. The workflow environment variables are already configured in the deploy and destroy workflow files.
-
-Deployments happen automatically when you push to the main branch, or you can trigger them manually from the Actions tab. To destroy infrastructure, go to Actions → Destroy Infrastructure → Run workflow and type "destroy" to confirm.
+For CI/CD, set the `AWS_GITHUB_ACTIONS_ROLE_ARN` secret in GitHub. Deployments run automatically on push to main, or trigger manually from Actions.
 
 ## Project Structure
 

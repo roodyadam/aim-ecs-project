@@ -34,41 +34,9 @@ This demo shows the Aim web application interface and demonstrates how it tracks
 
 ## Local Setup
 
-Prerequisites: AWS account, Terraform 1.6.0+, AWS CLI, Docker, Python 3.11+, Git.
+Prerequisites: Python 3.11+.
 
-Clone the repository:
-
-```bash
-git clone https://github.com/roodyadam/aim-ecs-project.git
-cd aim-ecs-project
-```
-
-Create `infra/terraform.tfvars` with your configuration:
-
-```hcl
-aws_region = "eu-west-2"
-project_name = "aimapp"
-domain_name = "your-domain.com"
-subdomain = "tm"
-container_port = 80
-container_cpu = 256
-container_memory = 512
-desired_count = 1
-github_repo = "your-username/aim-ecs-project"
-certificate_arn = "arn:aws:acm:region:account:certificate/cert-id"
-hosted_zone_id = "Z1234567890ABC"
-```
-
-Update the S3 backend in `infra/main.tf` with your bucket and DynamoDB table names, then deploy:
-
-```bash
-cd infra
-terraform init
-terraform plan
-terraform apply
-```
-
-For local development:
+Run locally:
 
 ```bash
 cd aim
@@ -76,7 +44,7 @@ pip install -r requirements.txt
 aim up --host 0.0.0.0 --port 8080
 ```
 
-For CI/CD, set the `AWS_GITHUB_ACTIONS_ROLE_ARN` secret in GitHub. Deployments run automatically on push to main, or trigger manually from Actions.
+The Aim UI will be available at http://localhost:8080.
 
 ## Project Structure
 
@@ -107,23 +75,6 @@ aim-ecs-project/
 └── README.md
 ```
 
-## Configuration
-
-The GitHub Actions workflows use these environment variables:
-
-- `AWS_REGION`: AWS region (eu-west-2)
-- `DOMAIN_NAME`: Your domain name
-- `GITHUB_REPO`: GitHub repository in format 'owner/repo'
-- `CERTIFICATE_ARN`: ACM certificate ARN for HTTPS
-- `HOSTED_ZONE_ID`: Route53 hosted zone ID
-
-You can customize these Terraform variables:
-
-- `container_cpu`: CPU units for ECS tasks (default: 256)
-- `container_memory`: Memory in MB for ECS tasks (default: 512)
-- `desired_count`: Number of ECS tasks to run (default: 1)
-- `subdomain`: Subdomain for the application (default: "tm")
-
 ## Development
 
 Run tests with:
@@ -146,11 +97,6 @@ ruff check .
 
 The CI/CD pipeline automatically runs TfSec for Terraform security scanning and Trivy for Docker image vulnerability scanning.
 
-## Additional Resources
-
-- [Aim Documentation](https://aimstack.readthedocs.io/)
-- [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
-- [AWS ECS Documentation](https://docs.aws.amazon.com/ecs/)
 
 ## Security
 

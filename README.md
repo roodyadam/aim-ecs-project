@@ -28,11 +28,9 @@ Key features include automated deployments that trigger on pushes to the main br
 
 ## Demo of the Application
 
-The application is live at https://tm.roodyadamsapp.com and running in production on AWS ECS.
+[Watch Demo Screen Recording](https://www.loom.com/share/11dce8d46d0949a9ba34c37633aa17df)
 
-Aim is an open-source experiment tracking tool for machine learning. It lets you track experiments, log metrics and parameters, visualize results through a web-based UI, and integrate with popular ML frameworks like PyTorch, TensorFlow, and Keras.
-
-You can use it to track ML experiments and runs, visualize metrics and compare different runs, search and filter experiments, store artifacts and model checkpoints, and monitor experiments in real-time.
+This demo shows the Aim web application interface and demonstrates how it tracks machine learning experiments, logs metrics and parameters, and visualizes results through its web-based UI.
 
 ## Local Setup
 

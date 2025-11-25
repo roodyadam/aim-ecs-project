@@ -85,9 +85,9 @@ jobs:
           cd infra
           terraform init
           
-          # Check if ECR exists in AWS but not in Terraform state
+          # Check if ECR exists in AWS 
           if aws ecr describe-repositories --repository-names ${{ env.ECR_REPO_NAME }} --region ${{ env.AWS_REGION }} 2>/dev/null; then
-            # ECR exists in AWS - check if it's in Terraform state
+            # ECR exists in AWS 
             if ! terraform state show module.ecr.aws_ecr_repository.this 2>/dev/null; then
               echo "ECR exists in AWS but not in Terraform state. Importing..."
               terraform import module.ecr.aws_ecr_repository.this ${{ env.ECR_REPO_NAME }}

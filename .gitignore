@@ -39,3 +39,6 @@ ENV/
 
 # Images
 images/
+
+# md 
+notes.md 

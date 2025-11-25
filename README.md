@@ -1,6 +1,28 @@
 # Aim ECS Deployment Project
 
-A production-ready infrastructure-as-code project for deploying [Aim](https://github.com/aimhubio/aim) (an open-source ML experiment tracking tool) on AWS ECS using Terraform and GitHub Actions CI/CD.
+A production-ready infrastructure-as-code project for deploying [Aim](https://github.com/aimhubio/aim) on AWS ECS using Terraform and GitHub Actions CI/CD.
+
+## What is Aim?
+
+**Aim** is an open-source machine learning experiment tracking tool that helps data scientists and ML engineers:
+- **Track experiments**: Log metrics, parameters, hyperparameters, and metadata from ML training runs
+- **Visualize results**: Interactive web UI to compare experiments, visualize metrics over time, and analyze model performance
+- **Organize work**: Search, filter, and group experiments to find the best models
+- **Collaborate**: Share experiment results with team members through a centralized interface
+
+Aim provides an alternative to tools like MLflow, Weights & Biases, and TensorBoard, with a focus on simplicity and powerful visualization capabilities.
+
+## What This Project Does
+
+This project deploys Aim as a **production-ready, cloud-hosted web application** on AWS infrastructure. Instead of running Aim locally or on a single server, this setup provides:
+
+- **Scalable hosting**: Runs on AWS ECS Fargate, which automatically handles container orchestration and can scale based on demand
+- **High availability**: Deployed across multiple availability zones for fault tolerance
+- **Secure access**: HTTPS encryption with custom domain support (e.g., `https://tm.roodyadamsapp.com`)
+- **Automated deployments**: CI/CD pipeline that builds, tests, and deploys on every code push
+- **Production infrastructure**: Load balancing, private networking, monitoring, and security best practices built-in
+
+The application is accessible via a web browser, allowing ML teams to track and visualize experiments from anywhere, with all data persisted in cloud storage.
 
 ## Architecture Diagram
 

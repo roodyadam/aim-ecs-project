@@ -61,8 +61,7 @@ Prerequisites: Python 3.11+.
 Run locally:
 
 ```bash
-cd aim
-pip install -r requirements.txt
+pip install aim  
 aim up --host 0.0.0.0 --port 8080
 ```
 
